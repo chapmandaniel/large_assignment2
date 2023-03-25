@@ -8,17 +8,17 @@ function App() {
 
     let [movies, setMovies] = useState(null);
 
-    function deleteMovie(id){
-        setMovies(movies.filter(movie => movie.id !== id))
+    function deleteMovie(title, date){
+        console.log("deleted: " + title);
+        setMovies(movies.filter(movie => (movie.title !== title && movie.date !== date)))
     }
 
 
     useEffect(() => {
-        fetch("/movies")
+        fetch("/api/movies")
             .then(response => response.json())
-            .then((data) => {
-                console.log(data);
-                setMovies(data);
+            .then((movies) => {
+                setMovies(movies);
             })
             .catch(error => console.error(error));
     }, []);

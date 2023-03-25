@@ -1,47 +1,70 @@
+// set up express
 import express from 'express';
-
 const app = express();
 
-app.get('/movies', (req, res) => {
-    res.send(myObj);
-});
+// set up database connection
+import { MongoClient } from 'mongodb';
+const client = new MongoClient('mongodb://127.0.0.1:27017')
+
+//enable file uploads
+import multer from 'multer';
+
+//handle file paths
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// middleware for json data
+app.use(express.json());
+
+// middleware for file uploads
+const upload = multer({dest: 'uploads/'});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// middleware for static files
+app.use(express.static(path.join(__dirname, '../../uploads')));
+app.use(express.static(path.join(__dirname, 'build')));
+
+
+
+// handle non api requests
+app.get(/^(?!\/api).+/, (req, res) => {
+    res.redirect('/')
+})
+
+// get route for movies data
+app.get('/api/movies', async (req, res) => {
+    await client.connect();
+    const db = client.db('moviesdb');
+    const movieData = await db.collection('movies').find({}).toArray();
+    res.json(movieData);
+})
+
+// post route for movies data
+// app.post('/api/addMovie', upload.single('image'), async (req, res) => {
+app.post('/api/addMovie', async (req, res) => {
+    await client.connect();
+    const db = client.db('moviesdb');
+    //
+    const insertData = await db.collection('movies').insertOne({
+        title: req.body.title,
+        date: req.body.date,
+        actors: req.body.actors,
+        rating: req.body.rating,
+        image: "./images/imdb.jpg"
+    });
+    res.json(insertData);
+
+
+    console.log("hit me baby one more time");
+    console.log(req.body);
+
+})
+
 
 app.listen(8000, () => {
     console.log('Server is running on port 8000');
 });
 
 
-const myObj = [
-    {
-        "id": 1,
-        "title": "Shawshank Redemption",
-        "date": "1994-09-23",
-        "actors": "Tim Robbins, Morgan Freeman, Bob Gunton, William Sadler, Clancy Brown",
-        "image": "./images/shawshank.jpg",
-        "rating": "5"
-    },
-    {
-        "id": 2,
-        "title": "The Godfather",
-        "date": "1972-03-24",
-        "actors": "Al Pacino, Marlon Brando, James Caan, Richard S. Castellano, Robert Duvall, Sterling Hayden",
-        "image": "./images/godfather.jpg",
-        "rating": "5"
-    },
-    {
-        "id": 3,
-        "title": "Interstellar",
-        "date": "2014-11-07",
-        "actors": "Matthew McConaughey, Anne Hathaway, Jessica Chastain, Bill Irwin, Ellen Burstyn, Michael Caine, Wes Bentley, Casey Affleck",
-        "image": "./images/interstellar.jpg",
-        "rating": "5"
-    },
-    {
-        "id": 4,
-        "title": "Inglourious Basterds",
-        "date": "2009-08-21",
-        "actors": "Brad Pitt, Diane Kruger, Eli Roth, Mélanie Laurent, Mike Myers, Christoph Waltz, Daniel Brühl, Til Schweiger, Michael Fassbender",
-        "image": "./images/basterds.jpg",
-        "rating": "5"
-    }
-];
+
