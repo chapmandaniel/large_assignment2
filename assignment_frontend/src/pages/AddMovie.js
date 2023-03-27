@@ -1,129 +1,94 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Alert from 'react-bootstrap/Alert';
 import Card from 'react-bootstrap/Card';
 
-
 function AddMovie(props){
 
-    const [formData, setFormData] = useState({
-        title: '',
-        date: '',
-        actors: '',
-        rating: '',
-        image: null,
-    });
+    let newMovie = {
+        "title": "",
+        "date": "",
+        "actors": "",
+        "image": "./images/imdb.jpg",
+        "rating": ""
+    }
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
-    //
-    // const handleSubmit2 = (event) => {
-    //
-    //     fetch("/api/addMovie", {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json"
-    //         },
-    //         body: JSON.stringify(newMovie)
-    //     })
-    //         .then(response => response.json()) // parse the JSON from the server
-    //         .then((movies) => {
-    //             props.setMovies(movies);
-    //         })
-    // };
+    const navigate = useNavigate();
+    const [addMovie, setAddMovie] = useState(newMovie);
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [imageFile, setImageFile] = useState("./imdb.jpg");
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        console.log("submitting");
 
-        const data = new FormData();
-        Object.entries(formData).forEach(([key, value]) => {
-            data.append(key, value);
-        });
+        const formData = new FormData();
+        formData.append("title", addMovie.title);
+        formData.append("date", addMovie.date);
+        formData.append("actors", addMovie.actors);
+        formData.append("rating", addMovie.rating);
+        formData.append("image", imageFile);
 
-        const response = await fetch('/api/addMovie', {
-            method: 'POST',
-            body: data,
-        });
-
-        const result = await response.json();
-        console.log(result);
-    };
-
-    const handleFileChange = (e) => {
-        setFormData({ ...formData, image: e.target.files[0] });
+        fetch("/api/addMovie", {
+            method: "POST",
+            body: formData,
+        })
+            .then((response) => response.json())
+            .then((movies) => {
+                props.setMovies(movies);
+                navigate('/');
+            });
     };
 
 
-    return(
+
+        return(
 
         <div id="add-form">
 
             <Card className={"w-50 mx-auto mt-xxl-5 bg-secondary"}>
                 <Card.Body>
+                    {isSubmitted && (
+                        <Alert key={'success'} variant={'success'}>
+                            Movie Added Successfully!
+                        </Alert>
+                    )}
+
                     <Form onSubmit={handleSubmit}>
-
-                    <Form.Group controlId="title">
-                        <Form.Label>Title</Form.Label>
-                        <Form.Control
-                            type="text"
-                            placeholder="Enter movie title"
-                            name="title"
-                            value={formData.title}
-                            onChange={handleChange}
-                        />
-                    </Form.Group>
-
-                        <Form.Group controlId="date">
-                            <Form.Label>Release Date</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Enter release date"
-                                name="date"
-                                value={formData.date}
-                                onChange={handleChange}
-                            />
+                        <Form.Group className="mb-3" controlId="a">
+                            <Form.Label>Title</Form.Label>
+                            <Form.Control type="text" placeholder="Enter Title" onChange={(event) => newMovie.title = event.target.value} />
                         </Form.Group>
 
-                        <Form.Group controlId="actors">
+                        <Form.Group className="mb-3" controlId="formBasicDate">
+                            <Form.Label>Date</Form.Label>
+                            <Form.Control type="date" placeholder="Enter Date" onChange={(event) => newMovie.date = event.target.value} />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3" controlId="b">
                             <Form.Label>Actors</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Enter actors"
-                                name="actors"
-                                value={formData.actors}
-                                onChange={handleChange}
-                            />
+                            <Form.Control type="text" placeholder="Enter Actors" onChange={(event) => newMovie.actors = event.target.value} />
                         </Form.Group>
 
-                        <Form.Group controlId="rating">
+                        <Form.Group className="mb-3" controlId="c">
                             <Form.Label>Rating</Form.Label>
-                            <Form.Control
-                                type="number"
-                                min="0"
-                                max="10"
-                                step="0.1"
-                                placeholder="Enter movie rating"
-                                name="rating"
-                                value={formData.rating}
-                                onChange={handleChange}
-                            />
+                            <Form.Control type="number" placeholder="Rate this film 1 to 5 Stars" onChange={(event) => newMovie.rating = event.target.value} />
                         </Form.Group>
 
-                        <Form.Group controlId="image">
+                        <Form.Group className="mb-3" controlId="d">
                             <Form.Label>Image</Form.Label>
-                            <Form.File
-                                name="image"
+                            <Form.Control
+                                type="file"
                                 accept="image/*"
-                                onChange={handleFileChange}
+                                onChange={(event) => setImageFile(event.target.files[0])}
                             />
                         </Form.Group>
 
 
                         <Button variant="primary" type="submit">
-                            Add Movie
+                            Submit
                         </Button>
                     </Form>
 
@@ -136,5 +101,3 @@ function AddMovie(props){
 }
 
 export default AddMovie;
-
-
