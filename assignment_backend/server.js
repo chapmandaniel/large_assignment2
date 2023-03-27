@@ -1,70 +1,91 @@
-// set up express
 import express from 'express';
-const app = express();
-
-// set up database connection
 import { MongoClient } from 'mongodb';
-const client = new MongoClient('mongodb://127.0.0.1:27017')
-
-//enable file uploads
+import path from 'path';
+import  { fileURLToPath } from 'url';
 import multer from 'multer';
 
-//handle file paths
-import { fileURLToPath } from 'url';
-import path from 'path';
 
-// middleware for json data
-app.use(express.json());
-
-// middleware for file uploads
-const upload = multer({dest: 'uploads/'});
+const upload = multer({dest: 'uploads'});
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// middleware for static files
-app.use(express.static(path.join(__dirname, '../../uploads')));
+const app = express();
+
+app.use(express.json());
+app.use(upload.fields([{ name: "image" }]));
 app.use(express.static(path.join(__dirname, 'build')));
+app.use(express.static(path.join(__dirname, 'uploads')));
 
 
-
-// handle non api requests
 app.get(/^(?!\/api).+/, (req, res) => {
-    res.redirect('/')
+    res.redirect('/');
 })
 
-// get route for movies data
 app.get('/api/movies', async (req, res) => {
+    const client = new MongoClient('mongodb://127.0.0.1:27017')
     await client.connect();
     const db = client.db('moviesdb');
     const movieData = await db.collection('movies').find({}).toArray();
-    res.json(movieData);
+    res.send(movieData);
+    await client.close();
 })
 
-// post route for movies data
-// app.post('/api/addMovie', upload.single('image'), async (req, res) => {
-app.post('/api/addMovie', async (req, res) => {
+app.post("/api/addMovie", async (req, res) => {
+    //sanity check
+    console.log("Received data");
+    console.log(req.body);
+    console.log("Received image file");
+    console.log(req.files);
+
+    // Handle the uploaded file
+    const imageFile = req.files.image ? req.files.image[0] : null;
+
+    // Connect to the database
+    const client = new MongoClient("mongodb://127.0.0.1:27017");
     await client.connect();
-    const db = client.db('moviesdb');
-    //
-    const insertData = await db.collection('movies').insertOne({
+    const db = client.db("moviesdb");
+
+    // Add the movie to the database
+    const addMovie = await db.collection("movies").insertOne({
         title: req.body.title,
         date: req.body.date,
         actors: req.body.actors,
         rating: req.body.rating,
-        image: "./images/imdb.jpg"
+        image: `${imageFile.filename}`
     });
-    res.json(insertData);
+
+    // get the updated list of movies and return it
+    const updatedMovies = await db.collection("movies").find({}).toArray();
+    res.send(updatedMovies);
+    await client.close();
 
 
-    console.log("hit me baby one more time");
-    console.log(req.body);
-
-})
-
-
-app.listen(8000, () => {
-    console.log('Server is running on port 8000');
 });
 
 
+app.post('/api/deleteMovies', async (req, res) => {
 
+    console.log("Received data");
+    console.log(req.body);
+
+    const client = new MongoClient('mongodb://127.0.0.1:27017')
+    await client.connect();
+    const db = client.db('moviesdb');
+    const deleteMovie = await db.collection('movies').deleteOne({
+        "title": req.body.title,
+        "date": req.body.date,
+    });
+    console.log(deleteMovie);
+    res.send(
+        {
+            "title": req.body.title,
+            "date": req.body.date,
+        }
+    );
+    await client.close();
+})
+
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+    console.log('Server is listening on port ' + PORT)
+});
